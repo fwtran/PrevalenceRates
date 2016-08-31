@@ -1,17 +1,12 @@
 #NHANES 09, 11 - DEPRESSION datasets
 
 rm(list=ls(all=T))
-library('sas7bdat')
 library('foreign')
 library('weights')
 library('plyr')
-library('descr')
 library('Hmisc')
 library('psych')
-library('GPArotation')
 library('stats')
-
-setwd("C:/Users/Felix/Desktop/Recent/Project/NHANES/Datasets")
 
 # FUNCTIONS ---------------------------------------------------------------
 
@@ -233,7 +228,7 @@ AllWeigh <- function(dataframe1, ID.1, weight.1, dataframe2, ID.2, weight.2) {
 
 AllWeigh2 <- function(dataframe1, ID.1, weight.1, dataframe2, ID.2, weight.2) {
   # Calls Weigh to get weighted prevalence estimates for all symptoms. Better
-  # version of AllWeigh b/c it removes NA rows and conducts factor analysis
+  # version of AllWeigh b/c it removes NA rows 
   # 
   # Args:
   #   dataframe1: A dataframe with study participants for one year (NHANES)
@@ -247,7 +242,7 @@ AllWeigh2 <- function(dataframe1, ID.1, weight.1, dataframe2, ID.2, weight.2) {
   #     corresponding dataframe
   #
   # Returns: 
-  #   Weighted prevalence estimates for all symptoms and factor analysis
+  #   Weighted prevalence estimates for all symptoms 
   
   depression <- rbind(dataframe1, dataframe2)
   old.weights <- append(weight.1, weight.2)
@@ -291,78 +286,20 @@ AllWeigh2 <- function(dataframe1, ID.1, weight.1, dataframe2, ID.2, weight.2) {
   }
   
   score <- depression$score
-  
-  print(fa(depression[2:10], nfactors=3))
-  
-#   anh <- depression$anhedonia
-#   dys <- depression$dysphoria
-#   sleep <- depression$sleep
-#   guilt <- depression$guilt
-#   energy <- depression$energy
-#   concen <- depression$concentration
-#   app <- depression$appetite
-#   psych <- depression$psychomotor
-#   suicide <- depression$suicide
-#   
-#   print(lm(depression$diagnosis ~ anh + dys + sleep + guilt + energy + 
-#              concen + app + psych + suicide))
-
   return(depression)
-}
-
-RaceWeigh <- function(dataframe, ID, weights, race) {
-  # Compares weighted depression prevalence based on race
-  # 
-  # Args:
-  #   dataframe: A dataframe with study participants for one year (NHANES)
-  #   ID: A vector with case ID's for the corresponding dataframe
-  #   weights: A vector with weights for all the respondents for the 
-  #     corresponding dataframe
-  #   race: A vector with answers to the racial demographic question
-  #
-  # Returns: 
-  #   Weighted prevalence estimates for depression prevalance between races
-  
-  rows <- nrow(dataframe)
-  index <- 1
-  remove <- F
-  
-  for(i in 1:rows) {
-    remove <- T
-    
-    for(i.2 in 2:10) {
-      if( !(is.na(dataframe[i,i.2])) )
-        remove <- F
-    }
-    
-    if (remove == T)
-      depression <- dataframe[-c(i),]
-  }
-
-  
-  dataframe$weights <- Clean(dataframe[,1], ID, weights)
-  
-  race.col <- vector()
-  
-  for(i in 1:nrow(dataframe)) {
-    index <- which(ID == dataframe$weights[i])
-    race.col[i] <- race[index]
-  }
-  
-  dataframe$race <- race.col
-  
-  print(str(dataframe$race))
-  
-  aggregate(dataframe$diagnosis, list(race=dataframe$race), 
-            wpct(dataframe$diagnosis, dataframe$weights))
 }
 
 
 # CONSOLE -----------------------------------------------------------------
 
 # Pull weights and depression numbers from the files
-NHANES.09 <- read.xport("NHANES_09.XPT")
-NHANES.11 <- read.xport("NHANES_11.XPT")
+download(url = "https://wwwn.cdc.gov/Nchs/Nhanes/2009-2010/DEMO_F.XPT",
+         destfile = "NHANES 09.XPT", mode = "wb")
+NHANES.09 <- read.xport('NHANES 09.XPT')
+
+download(url = "https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/DEMO_H.XPT",
+         destfile = "NHANES 11.XPT", mode = "wb")
+NHANES.11 <- read.xport("NHANES 11.XPT")
 
 weight.09 <- NHANES.09$WTMEC2YR
 weight.11 <- NHANES.11$WTMEC2YR
@@ -370,10 +307,13 @@ weight.11 <- NHANES.11$WTMEC2YR
 ID.09 <- as.integer(NHANES.09$SEQN)
 ID.11 <- as.integer(NHANES.11$SEQN)
 
-depression.09 <- read.xport("DEPRESSION_09.XPT")
-depression.11 <- read.xport("DEPRESSION_11.XPT")
+download(url = "https://wwwn.cdc.gov/Nchs/Nhanes/2009-2010/DPQ_F.XPT",
+         destfile = "DEPRESSION 09.XPT", mode = "wb")
+depression.09 <- read.xport("DEPRESSION 09.XPT")
 
-race.11 <- as.integer(NHANES.11$RIDRETH3)
+download(url = "https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/DPQ_H.XPT",
+         destfile = "DEPRESSION 11.XPT", mode = "wb")
+depression.11 <- read.xport("DEPRESSION 11.XPT")
 
 # New col names
 names <- c("ID", "anhedonia", "dysphoria", "sleep", "energy", 
@@ -384,9 +324,7 @@ names <- c("ID", "anhedonia", "dysphoria", "sleep", "energy",
 depression.09 <- Fix(depression.09, names)
 depression.11 <- Fix(depression.11, names)
 
-AllWeigh(depression.09, ID.09, weight.09, depression.11, ID.11, weight.11)
+# AllWeigh(depression.09, ID.09, weight.09, depression.11, ID.11, weight.11)
 
-#depression <- AllWeigh2(depression.09, ID.09, weight.09, 
-#                           depression.11, ID.11, weight.11)
-
-# RaceWeigh(depression.11, ID.11, weight.11, race.11)
+depression <- AllWeigh2(depression.09, ID.09, weight.09, 
+                           depression.11, ID.11, weight.11)
